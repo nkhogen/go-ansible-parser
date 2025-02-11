@@ -1,0 +1,7 @@
+- block:
+  - name: "Echoing"
+    shell:
+      cmd: "echo 'hello world root={{ user_id_root }}'"
+  - name: "S3 call"
+    shell:
+      cmd: "aws s3 ls"

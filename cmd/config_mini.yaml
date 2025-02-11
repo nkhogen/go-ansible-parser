@@ -1,0 +1,61 @@
+- set_fact:
+    yb_process_name: "yb-{{ yb_process_type }}"
+    yb_conf_file: "/tmp/test-config.conf"
+    yb_user: "nkhogen"
+    loop_list: "[\"test1\", \"test2\"]"
+
+- name: "Running ls command for {{ yb_process_name }}"
+  shell:
+    cmd: "ls -al"
+  when: yb_process_name == "yb-master"
+
+- name: "Get user ID {{ item }}"
+  shell:
+    cmd: "id -u {{item}}"
+  register: user_id_{{ item }}
+  loop:
+    items:
+      - root
+      - "{{ yb_user }}"
+
+- block:
+  - name: "Running df command for {{ yb_process_name }}"
+    shell:
+      cmd: "df -lh"
+    environment:
+      TEST_SCOPE: "test-scope"
+
+  - name: "Echoing"
+    shell:
+      cmd: "echo 'hello world! nkhogen={{ user_id_nkhogen }}'"
+
+  - name: Configure | Copy {{ yb_process_name }} gflags conf file
+    template:
+      src: yb-server-gflags.conf.j2
+      dest: "{{ yb_conf_file }}_{{ item.name }}"
+      force: yes
+      mode: 0644
+      owner: "{{ user_name }}"
+      group: "{{ user_name }}"
+  when: yb_process_name == "yb-master"
+  loop:
+    items:
+      - { name: 'testuser1', groups: 'wheel' }
+      - { name: 'testuser2', groups: 'root' }
+  environment:
+    YB_HOME: "/home/{{ yb_user }}"
+    YB_SERVER_BINARY_PATH: "/home/{{ yb_user }}/bin"
+    YB_CLIENT_BINARY_PATH: "/home/{{ yb_user }}/bin"
+    YB_TSERVER_BINARY_PATH: "/home/{{ yb_user }}/bin"
+    YB_MASTER_BINARY_PATH: "/home/{{ yb_user }}/bin"
+
+- name: Echo {{ item }}
+  shell:
+    cmd: "echo {{ item }}"
+  loop:
+    var: "{{loop_list}}"
+
+- name: "Include file"
+  include:
+    files:
+    - "config_mini2.yaml"
